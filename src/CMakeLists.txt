@@ -2,7 +2,6 @@
 
 add_library(load_visualizer STATIC
   hostgui.cc
-  transceiver.cc
   imgui_impl_glfw.cpp
   imgui_impl_opengl3.cpp
   ${PROJECT_SOURCE_DIR}/deps/imgui/imgui_demo.cpp
