@@ -1,7 +1,7 @@
 # TODO: make imgui a dependent library
 
 add_library(load_visualizer STATIC
-  hostgui.cc
+  load_visualizer.cc
   imgui_impl_glfw.cpp
   imgui_impl_opengl3.cpp
   ${PROJECT_SOURCE_DIR}/deps/imgui/imgui_demo.cpp

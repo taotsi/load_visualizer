@@ -1,5 +1,4 @@
-#ifndef HOSTGUI_H_
-#define HOSTGUI_H_
+#pragma once
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -18,12 +17,7 @@
 #include <string>
 #include "shader.h"
 
-//TODO: 3d plane render
-//TODO: mouse click response
-//TODO: image play, RGB, disparity/pointcloud
-//TODO: 2d plot, vectors
-//TODO: seperate ogl window
-
+// TODO: fix coordinate system
 /*
     coordinate system from this to OpenGL:
     this:
@@ -61,15 +55,15 @@
     0,0 ------------ W,0
 */
 
-class HostGui
+class LoadVisualizer
 {
 public:
-    HostGui();
-    HostGui(const HostGui &) = default;
-    HostGui(HostGui &&) = default;
-    HostGui &operator=(const HostGui &) = default;
-    HostGui &operator=(HostGui &&) = default;
-    ~HostGui();
+    LoadVisualizer();
+    LoadVisualizer(const LoadVisualizer &) = default;
+    LoadVisualizer(LoadVisualizer &&) = default;
+    LoadVisualizer &operator=(const LoadVisualizer &) = default;
+    LoadVisualizer &operator=(LoadVisualizer &&) = default;
+    ~LoadVisualizer();
 
     bool is_on() { return static_cast<bool>(is_on_); }
 
@@ -107,5 +101,3 @@ private:
     void RenderPoints(std::vector<float> data, Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection);
     void RenderTest(std::vector<float> data, Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection);
 };
-
-#endif // HOSTGUI_H_

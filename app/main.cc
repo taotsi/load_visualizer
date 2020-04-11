@@ -1,9 +1,9 @@
 #include <iostream>
 #include <memory>
-#include "hostgui.h"
+#include "load_visualizer.hh"
 
 int main(int, char**){
-	HostGui host;
+	LoadVisualizer host;
 
 	return 0;
 }

@@ -3,13 +3,13 @@
 // dont include it in a header file;
 #include <algorithm>
 #include <stb/stb_image.h>
-#include "hostgui.h"
+#include "load_visualizer.hh"
 
-HostGui::HostGui()
+LoadVisualizer::LoadVisualizer()
 {
-	thread_ = std::thread{&HostGui::ThreadMain, this};
+	thread_ = std::thread{&LoadVisualizer::ThreadMain, this};
 }
-HostGui::~HostGui()
+LoadVisualizer::~LoadVisualizer()
 {
 	if (thread_.joinable())
 	{
@@ -17,19 +17,19 @@ HostGui::~HostGui()
 	}
 }
 
-void HostGui::TurnOff()
+void LoadVisualizer::TurnOff()
 {
 	is_on_ = false;
 }
 
-void HostGui::TurnOn()
+void LoadVisualizer::TurnOn()
 {
 	is_on_ = true;
 }
-unsigned int HostGui::win_width_ = 1280;
-unsigned int HostGui::win_height_ = 720;
+unsigned int LoadVisualizer::win_width_ = 1280;
+unsigned int LoadVisualizer::win_height_ = 720;
 
-void HostGui::ThreadMain()
+void LoadVisualizer::ThreadMain()
 {
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
@@ -51,7 +51,7 @@ void HostGui::ThreadMain()
 		return;
 	}
 	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, HostGui::framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, LoadVisualizer::framebuffer_size_callback);
 	glfwSwapInterval(1); // Enable vsync
 
 	bool err = gl3wInit() != 0;
@@ -136,13 +136,8 @@ void HostGui::ThreadMain()
 		projection = glm::perspective(glm::radians(60.0f), (float)win_width_ / (float)win_height_, 0.1f, 100.0f);
 
 		/* Render OpenGL primitives here */
-		if (show_planes_)
-		{
-			glViewport(0, 0, win_width_ / 2, win_height_ / 2);
-			RenderPlanes(shader_planes, model, view, projection);
-			glViewport(0, win_height_ / 2, win_width_ / 2, win_height_ / 2);
-			RenderPlanes(shader_planes, model, view, projection);
-		}
+		glViewport(0, 0, win_width_, win_height_);
+		RenderPlanes(shader_planes, model, view, projection);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -167,7 +162,7 @@ void HostGui::ThreadMain()
 	is_on_ = false;
 }
 
-void HostGui::MainPanel()
+void LoadVisualizer::MainPanel()
 {
 	if (!ImGui::Begin("Panel"))
 	{
@@ -230,7 +225,7 @@ void HostGui::MainPanel()
 	ImGui::End();
 }
 
-void HostGui::RenderPlanes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection)
+void LoadVisualizer::RenderPlanes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection)
 {
 	shader.use();
 	shader.setMat4("model", model);
@@ -283,7 +278,7 @@ void HostGui::RenderPlanes(Shader &shader, glm::mat4 &model, glm::mat4 &view, gl
 	}
 }
 
-void HostGui::AddPlane(float x1, float y1, float z1, float x2, float y2, float z2)
+void LoadVisualizer::AddPlane(float x1, float y1, float z1, float x2, float y2, float z2)
 {
 	std::lock_guard<std::mutex> guard{mtx_};
 	planes_.push_back(x1 / map_range_);
@@ -293,24 +288,24 @@ void HostGui::AddPlane(float x1, float y1, float z1, float x2, float y2, float z
 	planes_.push_back(y2 / map_range_);
 	planes_.push_back(z2 / map_range_);
 }
-void HostGui::FlushPlanes()
+void LoadVisualizer::FlushPlanes()
 {
 	std::lock_guard<std::mutex> guard{mtx_};
 	planes_.clear();
 }
 
-void HostGui::framebuffer_size_callback(GLFWwindow *window, int width, int height)
+void LoadVisualizer::framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
 	// glViewport(0, 0, width, height);
 	win_width_ = width;
 	win_height_ = height;
 }
-void HostGui::processInput(GLFWwindow *window)
+void LoadVisualizer::processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 }
-void HostGui::glfw_error_callback(int error, const char *description)
+void LoadVisualizer::glfw_error_callback(int error, const char *description)
 {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
