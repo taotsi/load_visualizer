@@ -88,6 +88,7 @@ private:
   // data format of planes:
   // [x11, y11, z11, x12, y12, z12, x21, y21, z21, x22, y22, z22,...]
   std::vector<float> planes_;
+  // [lx1, ly1, lz1, dx1, dy1, dz1, ...]
   std::vector<float> boxes_;
 
   void render_planes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection);

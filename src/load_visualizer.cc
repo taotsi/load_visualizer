@@ -299,10 +299,15 @@ void LoadVisualizer::flush_plans()
 void LoadVisualizer::add_box(const std::array<float, 3> loc,
 														 const std::array<float, 3> dim)
 {
+	std::lock_guard<std::mutex> guard{mtx_};
+	boxes_.insert(boxes_.end(), loc.begin(), loc.end());
+	boxes_.insert(boxes_.end(), dim.begin(), dim.end());
 }
 
 void LoadVisualizer::flush_boxes()
 {
+	std::lock_guard<std::mutex> guard{mtx_};
+	boxes_.clear();
 }
 
 void LoadVisualizer::render_boxes(
