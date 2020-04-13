@@ -106,8 +106,6 @@ void LoadVisualizer::thread_main()
 
 	io.Fonts->AddFontFromFileTTF("./resources/DroidSans.ttf", 20.0f);
 
-	bool show_demo_window = false;
-
 	while (!glfwWindowShouldClose(window) && is_on_)
 	{
 		process_input(window);
@@ -134,12 +132,13 @@ void LoadVisualizer::thread_main()
 		model = glm::rotate(model, /*(float)glfwGetTime()*/ 30.f, glm::vec3(0.f, 1.0f, 0.0f));
 		float cam_x = sin(glfwGetTime()) * map_range_;
 		float cam_z = cos(glfwGetTime()) * map_range_;
-		view = glm::lookAt(glm::vec3(cam_x, 2.f, cam_z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::lookAt(glm::vec3(cam_x, 4.f, cam_z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		projection = glm::perspective(glm::radians(60.0f), (float)win_width_ / (float)win_height_, 0.1f, 100.0f);
 
 		/* Render OpenGL primitives here */
 		glViewport(0, 0, win_width_, win_height_);
 		render_planes(shader_planes, model, view, projection);
+		render_boxes(shader_planes, model, view, projection);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -236,7 +235,7 @@ void LoadVisualizer::render_planes(Shader &shader, glm::mat4 &model, glm::mat4 &
 
 	auto n_plane = planes_.size();
 	/* draw model data */
-	for (auto i = 0; i < n_plane; i += 6)
+	for (size_t i = 0; i < n_plane; i += 6)
 	{
 		auto x1 = planes_[i + 0];
 		auto y1 = planes_[i + 1];
@@ -296,12 +295,17 @@ void LoadVisualizer::flush_plans()
 	planes_.clear();
 }
 
-void LoadVisualizer::add_box(const std::array<float, 3> loc,
-														 const std::array<float, 3> dim)
+void LoadVisualizer::add_box(const std::array<float, 6> &box)
 {
 	std::lock_guard<std::mutex> guard{mtx_};
-	boxes_.insert(boxes_.end(), loc.begin(), loc.end());
-	boxes_.insert(boxes_.end(), dim.begin(), dim.end());
+	// (x, y, z) -> (y, z, x)
+	boxes_.push_back(box[1] / map_range_);
+	boxes_.push_back(box[2] / map_range_);
+	boxes_.push_back(box[0] / map_range_);
+	boxes_.push_back(box[4] / map_range_);
+	boxes_.push_back(box[5] / map_range_);
+	boxes_.push_back(box[3] / map_range_);
+
 }
 
 void LoadVisualizer::flush_boxes()
@@ -311,9 +315,88 @@ void LoadVisualizer::flush_boxes()
 }
 
 void LoadVisualizer::render_boxes(
-	const Shader &shader, const glm::mat4 &model,
+	Shader &shader, const glm::mat4 &model,
 	const glm::mat4 &view, const glm::mat4 &projection)
 {
+	shader.use();
+	shader.setMat4("model", model);
+	shader.setMat4("view", view);
+	shader.setMat4("projection", projection);
+
+	auto n_boxes = boxes_.size();
+	for (size_t i = 0; i < n_boxes; i+=6)
+	{
+		auto x1 = boxes_[i+0];
+		auto y1 = boxes_[i+1];
+		auto z1 = boxes_[i+2];
+		auto x2 = boxes_[i+3];
+		auto y2 = boxes_[i+4];
+		auto z2 = boxes_[i+5];
+
+		float texture_depth = abs(x1 - x2) * map_range_ / 2.f;
+		float texture_width = abs(y1 - y2) * map_range_ / 2.f;
+		float texture_height = abs(z1 - z2) * map_range_ / 2.f;
+
+		float triangles_gl[] = {
+			// front(+x) face
+			x2, y1, z1, 0.f, 0.f,
+			x2, y2, z1, 0.f, texture_width,
+			x2, y1, z2, texture_height, 0.f,
+			x2, y2, z1, texture_width, 0.f,
+			x2, y1, z2, 0.f, texture_height,
+			x2, y2, z2, texture_width, texture_height,
+			// back(-x) face
+			x1, y1, z1, 0.f, 0.f,
+			x1, y2, z1, 0.f, texture_width,
+			x1, y1, z2, texture_height, 0.f,
+			x1, y2, z1, texture_width, 0.f,
+			x1, y1, z2, 0.f, texture_height,
+			x1, y2, z2, texture_width, texture_height,
+			// right(+y) face
+			x2, y2, z1, 0.f, 0.f,
+			x2, y2, z2, 0.f, texture_height,
+			x1, y2, z1, texture_depth, 0.f,
+			x1, y2, z1, texture_depth, 0.f,
+			x2, y2, z2, 0.f, texture_height,
+			x1, y2, z2, texture_depth, texture_height,
+			// left(-y) face
+			x2, y1, z1, 0.f, 0.f,
+			x2, y1, z2, 0.f, texture_height,
+			x1, y1, z1, texture_depth, 0.f,
+			x1, y1, z1, texture_depth, 0.f,
+			x2, y1, z2, 0.f, texture_height,
+			x1, y1, z2, texture_depth, texture_height,
+			// upper(+z) face
+			x2, y1, z2, 0.f, 0.f,
+			x1, y1, z2, 0.f, texture_depth,
+			x2, y2, z2, texture_width, 0.f,
+			x2, y2, z2, texture_width, 0.f,
+			x1, y1, z2, 0.f, texture_depth,
+			x1, y2, z2, texture_width, texture_depth,
+			// lower(-z) face
+			x2, y1, z1, 0.f, 0.f,
+			x1, y1, z1, 0.f, texture_depth,
+			x2, y2, z1, texture_width, 0.f,
+			x2, y2, z1, texture_width, 0.f,
+			x1, y1, z1, 0.f, texture_depth,
+			x1, y2, z1, texture_width, texture_depth
+		};
+
+		unsigned int VAO, VBO;
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(triangles_gl), triangles_gl, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, sizeof(triangles_gl) / sizeof(float));
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+	}
 
 }
 

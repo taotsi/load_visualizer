@@ -18,7 +18,6 @@
 #include <array>
 #include "shader.h"
 
-// TODO: fix coordinate system
 /*
     coordinate system from this to OpenGL:
     Loading Planner:
@@ -65,8 +64,7 @@ public:
   void add_plane(float x1, float y1, float z1, float x2, float y2, float z2);
   void flush_plans();
 
-  void add_box(const std::array<float, 3> loc,
-               const std::array<float, 3> dim);
+  void add_box(const std::array<float, 6> &box);
   void flush_boxes();
 
   void turn_off();
@@ -88,12 +86,12 @@ private:
   // data format of planes:
   // [x11, y11, z11, x12, y12, z12, x21, y21, z21, x22, y22, z22,...]
   std::vector<float> planes_;
-  // [lx1, ly1, lz1, dx1, dy1, dz1, ...]
+  // [x11, y11, z11, x12, y12, z12, x21, y21, z21, x22, y22, z22,...]
   std::vector<float> boxes_;
 
   void render_planes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection);
   void render_boxes(
-      const Shader &shader, const glm::mat4 &model,
+      Shader &shader, const glm::mat4 &model,
       const glm::mat4 &view, const glm::mat4 &projection);
 
   static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
