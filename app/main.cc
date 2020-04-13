@@ -3,7 +3,7 @@
 #include "load_visualizer.hh"
 
 int main(int, char**){
-	LoadVisualizer host;
+	dr::LoadVisualizer host;
 
 	return 0;
 }

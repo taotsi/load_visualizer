@@ -1,13 +1,15 @@
+#include <algorithm>
 #define STB_IMAGE_IMPLEMENTATION
 // dont include this file anywhere else.
 // dont include it in a header file;
-#include <algorithm>
 #include <stb/stb_image.h>
 #include "load_visualizer.hh"
 
+namespace dr{
+
 LoadVisualizer::LoadVisualizer()
 {
-	thread_ = std::thread{&LoadVisualizer::ThreadMain, this};
+	thread_ = std::thread{&LoadVisualizer::thread_main, this};
 }
 LoadVisualizer::~LoadVisualizer()
 {
@@ -17,19 +19,19 @@ LoadVisualizer::~LoadVisualizer()
 	}
 }
 
-void LoadVisualizer::TurnOff()
+void LoadVisualizer::turn_off()
 {
 	is_on_ = false;
 }
 
-void LoadVisualizer::TurnOn()
+void LoadVisualizer::turn_on()
 {
 	is_on_ = true;
 }
 unsigned int LoadVisualizer::win_width_ = 1280;
 unsigned int LoadVisualizer::win_height_ = 720;
 
-void LoadVisualizer::ThreadMain()
+void LoadVisualizer::thread_main()
 {
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
@@ -108,14 +110,14 @@ void LoadVisualizer::ThreadMain()
 
 	while (!glfwWindowShouldClose(window) && is_on_)
 	{
-		processInput(window);
+		process_input(window);
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
 		/* Render ImGui here */
-		MainPanel();
+		main_panel();
 
 		ImGui::Render();
 		// glfwMakeContextCurrent(window);
@@ -137,7 +139,7 @@ void LoadVisualizer::ThreadMain()
 
 		/* Render OpenGL primitives here */
 		glViewport(0, 0, win_width_, win_height_);
-		RenderPlanes(shader_planes, model, view, projection);
+		render_planes(shader_planes, model, view, projection);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -162,7 +164,7 @@ void LoadVisualizer::ThreadMain()
 	is_on_ = false;
 }
 
-void LoadVisualizer::MainPanel()
+void LoadVisualizer::main_panel()
 {
 	if (!ImGui::Begin("Panel"))
 	{
@@ -186,7 +188,7 @@ void LoadVisualizer::MainPanel()
 	ImGui::PopItemWidth();
 	if (ImGui::Button("Add Plane"))
 	{
-		AddPlane(x1, y1, z1, x2, y2, z2);
+		add_plane(x1, y1, z1, x2, y2, z2);
 	}
 	/* parameter control */
 	ImGui::Separator();
@@ -225,7 +227,7 @@ void LoadVisualizer::MainPanel()
 	ImGui::End();
 }
 
-void LoadVisualizer::RenderPlanes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection)
+void LoadVisualizer::render_planes(Shader &shader, glm::mat4 &model, glm::mat4 &view, glm::mat4 &projection)
 {
 	shader.use();
 	shader.setMat4("model", model);
@@ -278,7 +280,7 @@ void LoadVisualizer::RenderPlanes(Shader &shader, glm::mat4 &model, glm::mat4 &v
 	}
 }
 
-void LoadVisualizer::AddPlane(float x1, float y1, float z1, float x2, float y2, float z2)
+void LoadVisualizer::add_plane(float x1, float y1, float z1, float x2, float y2, float z2)
 {
 	std::lock_guard<std::mutex> guard{mtx_};
 	planes_.push_back(x1 / map_range_);
@@ -288,10 +290,26 @@ void LoadVisualizer::AddPlane(float x1, float y1, float z1, float x2, float y2, 
 	planes_.push_back(y2 / map_range_);
 	planes_.push_back(z2 / map_range_);
 }
-void LoadVisualizer::FlushPlanes()
+void LoadVisualizer::flush_plans()
 {
 	std::lock_guard<std::mutex> guard{mtx_};
 	planes_.clear();
+}
+
+void LoadVisualizer::add_box(const std::array<float, 3> loc,
+														 const std::array<float, 3> dim)
+{
+}
+
+void LoadVisualizer::flush_boxes()
+{
+}
+
+void LoadVisualizer::render_boxes(
+	const Shader &shader, const glm::mat4 &model,
+	const glm::mat4 &view, const glm::mat4 &projection)
+{
+
 }
 
 void LoadVisualizer::framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -300,7 +318,7 @@ void LoadVisualizer::framebuffer_size_callback(GLFWwindow *window, int width, in
 	win_width_ = width;
 	win_height_ = height;
 }
-void LoadVisualizer::processInput(GLFWwindow *window)
+void LoadVisualizer::process_input(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -308,4 +326,6 @@ void LoadVisualizer::processInput(GLFWwindow *window)
 void LoadVisualizer::glfw_error_callback(int error, const char *description)
 {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+
 }

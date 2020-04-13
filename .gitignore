@@ -4,3 +4,4 @@ imgui.ini
 *.so
 *_app
 test_*
+.vscode
